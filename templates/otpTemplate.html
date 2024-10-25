@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <title>Your One-Time-Password</title>
+        <style>
+            @media only screen and (min-width: 620px) {
+                .u-row {
+                    width: 600px !important;
+                }
+                .u-row .u-col-100 {
+                    width: 600px !important;
+                }
+            }
+            @media only screen and (max-width: 620px) {
+                .u-row-container {
+                    max-width: 100% !important;
+                    padding: 0;
+                }
+                .u-row {
+                    width: 100% !important;
+                }
+                .u-row .u-col {
+                    width: 100% !important;
+                    display: block !important;
+                }
+                .u-row .u-col img {
+                    max-width: 100% !important;
+                }
+            }
+            body {
+                margin: 0;
+                padding: 0;
+                font-family: Inter, sans-serif;
+                background-color: #f0f0f0;
+                color: #000000;
+            }
+        </style>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+            rel="stylesheet" />
+    </head>
+
+    <body>
+        <table width="100%" bgcolor="#f0f0f0" cellpadding="0" cellspacing="0">
+            <tr>
+                <td>
+                    <div class="u-row-container" style="padding: 0">
+                        <div
+                            class="u-row"
+                            style="max-width: 600px; margin: auto">
+                            <div
+                                class="u-col u-col-100"
+                                style="background-color: #ddffe7">
+                                <div
+                                    style="
+                                        padding: 10px;
+                                        margin-top: 3rem;
+                                        text-align: center;
+                                    ">
+                                    <img
+                                        src="cid:image1"
+                                        alt="image"
+                                        width="190"
+                                        style="
+                                            display: inline-block;
+                                            border: none;
+                                            max-width: 100%;
+                                        " />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="u-row-container" style="padding: 0">
+                        <div
+                            class="u-row"
+                            style="max-width: 600px; margin: auto">
+                            <div
+                                class="u-col u-col-100"
+                                style="background-color: #ffffff">
+                                <div style="text-align: center">
+                                    <h1
+                                        style="
+                                            font-family: 'Inter', sans-serif;
+                                            font-size: 24px;
+                                            font-weight: bold;
+                                            margin-top: 0;
+                                            padding: 2rem 0.5rem 0.5rem 0.5rem;
+                                            color: #000;
+                                        ">
+                                        Your OTP is
+                                    </h1>
+                                    <div
+                                        style="
+                                            padding: 0 40px 10px 40px;
+                                            margin-bottom: 1rem;
+                                            text-align: center;
+                                        ">
+                                        <p style="color: #000">
+                                            Please verify you're really you by
+                                            entering this 6-digit code. This
+                                            code will expire in 10 minutes for
+                                            security reasons.
+                                        </p>
+                                    </div>
+                                    <p
+                                        style="
+                                            font-family: 'Inter', sans-serif;
+                                            font-size: 48px;
+                                            color: #000;
+                                            font-weight: bold;
+                                            padding-bottom: 4rem;
+                                            margin-top: 1rem;
+                                        ">
+                                        ${otp}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>

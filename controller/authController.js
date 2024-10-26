@@ -7,7 +7,6 @@ const cuid = init()
 
 const signup = async (request, response) => {
     const { name, email, password } = request.body
-
     try {
         const existingUser = await userModel.findOne({ email })
         if (existingUser) {
@@ -15,7 +14,6 @@ const signup = async (request, response) => {
         }
 
         const userId = cuid()
-        console.log('user id : ', userId)
 
         const newUser = new userModel({ userId, name, email, password })
 
@@ -32,7 +30,6 @@ const signup = async (request, response) => {
             userProfile,
         })
     } catch (error) {
-        console.error('Signup error:', error)
         return response.status(500).send({ error: 'Internal server error' })
     }
 }
@@ -70,7 +67,6 @@ const signupGoogleUser = async (request, response) => {
             userProfile,
         })
     } catch (error) {
-        console.error('Google Signup error:', error)
         return response.status(500).send({ error: 'Internal server error' })
     }
 }
@@ -110,32 +106,6 @@ const login = async (request, response) => {
         response.status(500).send({ message: error.message })
     }
 }
-
-// const loginGoogleUser = async (request, response) => {
-//     const { googleId } = request.body
-
-//     try {
-//         const existingUser = await userModel.findOne({ googleId })
-
-//         if (!existingUser) {
-//             return response.status(404).send({ error: 'User not found' })
-//         }
-
-//         const token = existingUser.generateJwtToken()
-//         const options = { httpOnly: true, secure: true, sameSite: 'none' }
-
-//         response.cookie('sessionId', token, options)
-
-//         const { password, ...userProfile } = existingUser.toObject()
-//         return response.status(200).send({
-//             message: 'User logged in successfully.',
-//             userProfile,
-//         })
-//     } catch (error) {
-//         console.error('Google Login error:', error)
-//         return response.status(500).send({ error: 'Internal server error' })
-//     }
-// }
 
 module.exports = {
     signup,

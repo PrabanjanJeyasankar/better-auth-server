@@ -3,12 +3,10 @@ const userModel = require('../model/userModel')
 
 const verifyUser = (request, response, next) => {
     const authHeader = request.headers.cookie
-    console.log(authHeader)
     if (!authHeader) {
         return response.status(401).send({ message: 'Token not found' })
     }
     const cookie = authHeader.split('=')[1]
-    console.log(cookie)
 
     jwt.verify(cookie, process.env.ACCESS_TOKEN, async (error, data) => {
         if (error) {

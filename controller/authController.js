@@ -10,7 +10,6 @@ const generateOtp = () => {
 }
 
 const requestSignupOtp = async (request, response) => {
-    console.log(request.body)
     const { email, password, name } = request.body
 
     try {
@@ -45,15 +44,12 @@ const requestSignupOtp = async (request, response) => {
 
         response.status(200).send({ message: 'OTP sent to your email' })
     } catch (error) {
-        console.error('Request OTP error:', error)
         response.status(500).send({ message: 'Error sending OTP' })
     }
 }
 
 const verifySignupOtp = async (request, response) => {
     const { email, otp: inputOtp } = request.body
-    console.log('Email received for OTP verification:', email)
-    console.log('Otp received for OTP verification:', inputOtp)
 
     try {
         const existingUser = await userModel.findOne({ email })
@@ -82,7 +78,6 @@ const verifySignupOtp = async (request, response) => {
             userProfile,
         })
     } catch (error) {
-        console.error('Signup OTP verification error:', error)
         response
             .status(500)
             .send({ message: 'Error verifying OTP and creating user' })
@@ -122,7 +117,6 @@ const signupGoogleUser = async (request, response) => {
             userProfile,
         })
     } catch (error) {
-        console.error('Google Signup error:', error)
         return response.status(500).send({ error: 'Internal server error' })
     }
 }

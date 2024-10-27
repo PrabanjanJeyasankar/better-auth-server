@@ -9,12 +9,10 @@ const generateAuthUrl = () => {
 }
 
 async function fetchUserData(accessToken) {
-    console.log(accessToken)
     const response = await fetch(
         `https://www.googleapis.com/oauth2/v3/userinfo?access_token=${accessToken}`
     )
     const data = await response.json()
-    console.log('user data after token send', data)
     data.accessToken = accessToken
     return data
 }
@@ -22,7 +20,6 @@ async function fetchUserData(accessToken) {
 const getUserDataFromCode = async (code, response) => {
     try {
         const { tokens } = await oAuth2Client.getToken(code)
-        console.log(tokens)
         const options = {
             httpOnly: true,
             secure: true,
@@ -47,7 +44,6 @@ const verifyAccessToken = async (idToken) => {
         })
         return ticket.getPayload()
     } catch (error) {
-        console.error('Error verifying access token:', error)
         throw new Error('Invalid access token')
     }
 }
@@ -69,7 +65,6 @@ const refreshIdToken = async (refreshToken) => {
         const data = await response.json()
         return data.id_token
     } catch (error) {
-        console.error('Error refreshing ID token:', error)
         throw error
     }
 }

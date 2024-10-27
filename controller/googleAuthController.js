@@ -13,7 +13,6 @@ const googleAuthPageRequest = async (request, response) => {
         const url = generateAuthUrl()
         response.status(200).send({ message: 'Redirected successfully ', url })
     } catch (error) {
-        console.error(error)
         response.status(500).send('Error generating auth URL')
     }
 }
@@ -23,23 +22,16 @@ const handleAuthCallback = async (request, response) => {
 
     try {
         const userData = await getUserDataFromCode(code, response)
-
-        console.log('userData : ', userData)
         response.redirect('http://localhost:5173')
     } catch (error) {
-        console.error(error)
         response.status(500).send('Error during authentication')
     }
 }
 
 const verifyToken = async (request, response) => {
-    console.log(request.headers)
-
     const cookieString = request.headers['cookie']
-    console.log(cookieString)
     const parseCookies = (cookieString) => {
         if (!cookieString) {
-            console.log('No cookie string found')
             return {}
         }
 
@@ -49,7 +41,6 @@ const verifyToken = async (request, response) => {
             return acc
         }, {})
 
-        console.log(cookies)
         return {
             accessToken: cookies.access_token || null,
             refreshToken: cookies.refresh_token || null,
@@ -58,7 +49,6 @@ const verifyToken = async (request, response) => {
     }
 
     const { accessToken, refreshToken, idToken } = parseCookies(cookieString)
-    console.log('accessToken:', accessToken)
 
 
     if (!accessToken) {
@@ -69,7 +59,6 @@ const verifyToken = async (request, response) => {
         const userData = await verifyAccessToken(idToken)
         response.json({ userData })
     } catch (error) {
-        console.error('Access token verification error:', error)
 
         if (refreshToken) {
             try {
@@ -77,7 +66,6 @@ const verifyToken = async (request, response) => {
                 const newUserData = await verifyAccessToken(newIdToken)
                 response.json({ userData: newUserData })
             } catch (refreshError) {
-                console.error('Refresh token error:', refreshError)
                 return response
                     .status(401)
                     .send('Invalid access token and refresh token')

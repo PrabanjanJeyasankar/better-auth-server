@@ -24,7 +24,6 @@ const requestOtp = async (request, response) => {
 
         response.status(200).send({ message: 'OTP sent to your email' })
     } catch (error) {
-        console.error('Forgot password error:', error)
         response.status(500).send({ message: 'Error sending OTP' })
     }
 }
@@ -52,23 +51,18 @@ const verifyOtp = async (request, response) => {
 
         response.status(200).send({ message: 'OTP verified' })
     } catch (error) {
-        console.error('OTP verification error:', error)
         response.status(500).send({ message: 'Error verifying OTP' })
     }
 }
 
 const resetPassword = async (request, response) => {
-    console.log('Processing password reset...')
     const { email, newPassword } = request.body
-    console.log('email:', email)
-    console.log(newPassword)
 
     try {
         const user = await userModel.findOne({ email })
         if (!user) {
             return response.status(404).json({ error: 'User not found' })
         }
-        console.log('old pass : ', user.password)
 
         const isSamePassword = await bcrypt.compare(newPassword, user.password)
         if (isSamePassword) {

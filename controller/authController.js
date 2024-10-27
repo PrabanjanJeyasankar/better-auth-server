@@ -1,39 +1,91 @@
 const { init } = require('@paralleldrive/cuid2')
 const bcrypt = require('bcryptjs')
 const userModel = require('../model/userModel')
+const mailService = require('../services/mailService')
 const superAdminCredentials = require('../database/initialData')
-
 const cuid = init()
 
-const signup = async (request, response) => {
-    const { name, email, password } = request.body
+const generateOtp = () => {
+    return Math.floor(100000 + Math.random() * 900000).toString()
+}
+
+const requestSignupOtp = async (request, response) => {
+    console.log(request.body)
+    const { email, password, name } = request.body
+
+    try {
+        let existingUser = await userModel.findOne({ email })
+
+        if (existingUser) {
+            if (existingUser.verifiedUser) {
+                return response
+                    .status(409)
+                    .send({ error: 'User already exists' })
+            }
+        } else {
+            const userId = cuid()
+            existingUser = new userModel({
+                userId,
+                email,
+                name,
+                password: await bcrypt.hash(password, 10),
+                verifiedUser: false, 
+            })
+        }
+
+        const otp = generateOtp()
+        const otpExpiry = Date.now() + 10 * 60 * 1000
+
+        existingUser.otp = otp
+        existingUser.otpExpiry = otpExpiry
+
+        await existingUser.save()
+
+        await mailService.sendOtpEmail(email, otp)
+
+        response.status(200).send({ message: 'OTP sent to your email' })
+    } catch (error) {
+        console.error('Request OTP error:', error)
+        response.status(500).send({ message: 'Error sending OTP' })
+    }
+}
+
+const verifySignupOtp = async (request, response) => {
+    const { email, otp: inputOtp } = request.body
+    console.log('Email received for OTP verification:', email)
+    console.log('Otp received for OTP verification:', inputOtp)
 
     try {
         const existingUser = await userModel.findOne({ email })
-        if (existingUser) {
-            return response.status(409).send({ error: 'User already exists' })
+        if (!existingUser) {
+            return response.status(404).send({ message: 'User not found' })
+        }
+        if (existingUser.otp !== inputOtp) {
+            return response.status(400).send({ message: 'Invalid OTP' })
+        }
+        if (existingUser.otpExpiry < Date.now()) {
+            return response.status(410).send({ message: 'OTP has expired' })
         }
 
-        const userId = cuid()
-        console.log('user id : ', userId)
+        existingUser.verifiedUser = true
+        existingUser.otp = null
+        existingUser.otpExpiry = null
+        await existingUser.save()
 
-        const newUser = new userModel({ userId, name, email, password })
-
-        await newUser.save()
-
-        const token = newUser.generateJwtToken()
+        const token = existingUser.generateJwtToken()
         const options = { httpOnly: true, secure: true, sameSite: 'none' }
-
-        const { password: userPassword, ...userProfile } = newUser.toObject()
+        const { password, ...userProfile } = existingUser.toObject()
 
         response.cookie('sessionId', token, options)
-        return response.status(201).send({
-            message: 'User created and successfully added into DB.',
+        response.status(201).send({
+            message: 'User verified and created successfully.',
             userProfile,
         })
     } catch (error) {
-        console.error('Signup error:', error)
-        return response.status(500).send({ error: 'Internal server error' })
+        console.error('Signup OTP verification error:', error)
+        response
+            .status(500)
+            .send({ message: 'Error verifying OTP and creating user' })
     }
 }
 
@@ -111,34 +163,17 @@ const login = async (request, response) => {
     }
 }
 
-// const loginGoogleUser = async (request, response) => {
-//     const { googleId } = request.body
-
-//     try {
-//         const existingUser = await userModel.findOne({ googleId })
-
-//         if (!existingUser) {
-//             return response.status(404).send({ error: 'User not found' })
-//         }
-
-//         const token = existingUser.generateJwtToken()
-//         const options = { httpOnly: true, secure: true, sameSite: 'none' }
-
-//         response.cookie('sessionId', token, options)
-
-//         const { password, ...userProfile } = existingUser.toObject()
-//         return response.status(200).send({
-//             message: 'User logged in successfully.',
-//             userProfile,
-//         })
-//     } catch (error) {
-//         console.error('Google Login error:', error)
-//         return response.status(500).send({ error: 'Internal server error' })
-//     }
-// }
+const logout = async (request, response) => {
+    response.clearCookie('access_token')
+    response.clearCookie('id_token')
+    response.clearCookie('refresh_token')
+    response.status(200).send({ message: 'Logged out successfully' })
+}
 
 module.exports = {
-    signup,
+    requestSignupOtp,
+    verifySignupOtp,
     signupGoogleUser,
     login,
+    logout,
 }

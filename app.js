@@ -5,7 +5,8 @@ const app = express()
 const PORT = 3500
 const cookieParser = require('cookie-parser')
 
-const userRouter = require('./router/userRouter')
+const userRoute = require('./router/userRoute')
+const googleAuthRoute = require('./router/googleAuthRoute')
 
 const cors = require('cors')
 
@@ -38,6 +39,8 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
 
-app.use('/api/v1/user', userRouter)
+app.use('/api/v1/google-auth', googleAuthRoute)
+
+app.use('/api/v1/user', userRoute)
 
 app.listen(PORT, console.log(`server running at http://localhost:${PORT}`))

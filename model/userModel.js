@@ -21,7 +21,9 @@ const userSchema = new mongoose.Schema(
         },
         userId: {
             type: String,
-            required: true,
+            required: function () {
+                return this.role !== 'admin'
+            },
             unique: true,
         },
         googleId: {
@@ -36,12 +38,23 @@ const userSchema = new mongoose.Schema(
             type: Date,
             required: false,
         },
+        verifiedUser: {
+            type: Boolean,
+            default: false,
+        },
+        role: {
+            type: String,
+            required: true,
+            enum: ['user', 'admin'],
+            default: 'user',
+        },
     },
     {
         collection: 'user',
         timestamps: true,
     }
 )
+
 userSchema.pre('save', function (next) {
     const user = this
     if (!user.isModified('password')) {

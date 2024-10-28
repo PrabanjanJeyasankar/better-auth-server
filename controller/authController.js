@@ -1,50 +1,82 @@
 const { init } = require('@paralleldrive/cuid2')
-const bcrypt = require('bcryptjs')
 const userModel = require('../model/userModel')
-const mailService = require('../services/mailService')
 const superAdminCredentials = require('../database/initialData')
+const {
+    generateAndSendOtp,
+    getOtpDocumentByEmail,
+} = require('../services/authService')
+const { getUserByEmail } = require('../services/userService')
+const { setResponseBody } = require('../utils/responseFormatter')
+const OtpError = require('../errors/otpError')
 const cuid = init()
-
-const generateOtp = () => {
-    return Math.floor(100000 + Math.random() * 900000).toString()
-}
+const bcrypt = require('bcryptjs')
 
 const requestSignupOtp = async (request, response) => {
     const { email, password, name } = request.body
 
     try {
-        let existingUser = await userModel.findOne({ email })
+        const existingUser = await getUserByEmail(email)
 
         if (existingUser) {
             if (existingUser.verifiedUser) {
                 return response
                     .status(409)
-                    .send({ error: 'User already exists' })
+                    .send(
+                        setResponseBody(
+                            'email already exist',
+                            'existing_user',
+                            null
+                        )
+                    )
             }
-        } else {
-            const userId = cuid()
-            existingUser = new userModel({
-                userId,
-                email,
-                name,
-                password: await bcrypt.hash(password, 10),
-                verifiedUser: false, 
-            })
+            await generateAndSendOtp(existingUser.email)
+            existingUser.name = name
+            existingUser.password = password
+
+            return response
+                .status(403)
+                .send(
+                    setResponseBody(
+                        'User already exists, but not verified, please verify to continue.',
+                        'unverified_existing_user',
+                        null
+                    )
+                )
         }
 
-        const otp = generateOtp()
-        const otpExpiry = Date.now() + 10 * 60 * 1000
+        await generateAndSendOtp(email)
 
-        existingUser.otp = otp
-        existingUser.otpExpiry = otpExpiry
+        const userId = cuid()
+        const newUser = new userModel({
+            userId,
+            email,
+            name,
+            password,
+        })
 
-        await existingUser.save()
+        await newUser.save()
 
-        await mailService.sendOtpEmail(email, otp)
-
-        response.status(200).send({ message: 'OTP sent to your email' })
+        return response
+            .status(200)
+            .send(setResponseBody('OTP sent to your email', null, null))
     } catch (error) {
-        response.status(500).send({ message: 'Error sending OTP' })
+        if (error instanceof OtpError) {
+            return response
+                .status(423)
+                .send(
+                    setResponseBody(
+                        'Could not send OTP. Please try again later.',
+                        'otp_error',
+                        error.message
+                    )
+                )
+        }
+
+        return response
+            .status(500)
+            .send(
+                setResponseBody('Something went wrong', 'server_error', error)
+            )
     }
 }
 
@@ -52,20 +84,17 @@ const verifySignupOtp = async (request, response) => {
     const { email, otp: inputOtp } = request.body
 
     try {
-        const existingUser = await userModel.findOne({ email })
-        if (!existingUser) {
-            return response.status(404).send({ message: 'User not found' })
+        const otpData = await getOtpDocumentByEmail(email)
+        if (!otpData) {
+            return response.status(404).send({ message: 'OTP expired, resend' })
         }
-        if (existingUser.otp !== inputOtp) {
+        if (otpData.otp.toString() !== inputOtp.toString()) {
             return response.status(400).send({ message: 'Invalid OTP' })
         }
-        if (existingUser.otpExpiry < Date.now()) {
-            return response.status(410).send({ message: 'OTP has expired' })
-        }
+
+        const existingUser = await getUserByEmail(email)
 
         existingUser.verifiedUser = true
-        existingUser.otp = null
-        existingUser.otpExpiry = null
         await existingUser.save()
 
         const token = existingUser.generateJwtToken()
@@ -78,9 +107,7 @@ const verifySignupOtp = async (request, response) => {
             userProfile,
         })
     } catch (error) {
-        response
-            .status(500)
-            .send({ message: 'Error verifying OTP and creating user' })
+        response.status(500).send({ message: error.message })
     }
 }
 

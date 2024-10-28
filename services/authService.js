@@ -1,4 +1,8 @@
 const oAuth2Client = require('../config/googleAuthConfig')
+const moment = require('moment')
+const otpModel = require('../model/otpModel')
+const mailService = require('../services/mailService')
+const OtpError = require('../errors/otpError')
 
 const generateAuthUrl = () => {
     return oAuth2Client.generateAuthUrl({
@@ -69,9 +73,78 @@ const refreshIdToken = async (refreshToken) => {
     }
 }
 
+const generateAndSendOtp = async (email) => {
+    try {
+        const otp = await generateOtp(email)
+        await mailService.sendOtpThroughEmail(email, otp)
+    } catch (error) {
+        if (error instanceof OtpError) {
+            throw new OtpError(error.message)
+        }
+        throw new Error(error)
+    }
+}
+
+const generateOtp = async (email) => {
+    const otpDocument = await checkForExistingOtpDocument(email)
+    const MAX_ATTEMPTS = 3
+
+    if (otpDocument) {
+        if (otpDocument.attempts < MAX_ATTEMPTS) {
+            const otp = Math.floor(100000 + Math.random() * 900000).toString()
+            const expiresAt = moment().add(10, 'minutes').toDate()
+
+            otpDocument.otp = otp
+            otpDocument.expiresAt = expiresAt
+            otpDocument.attempts += 1
+
+            await otpDocument.save()
+
+            return otp
+        } else {
+            throw new OtpError('Otp attempt limit exceeded.')
+        }
+    } else {
+        const otp = Math.floor(100000 + Math.random() * 900000).toString()
+        const expiresAt = moment().add(10, 'minutes').toDate()
+
+        const otpData = {
+            email,
+            otp,
+            expiresAt,
+            attempts: 1,
+        }
+
+        await generateOtpDocument(otpData)
+
+        return otp
+    }
+}
+
+const generateOtpDocument = async (otpData) => {
+    const newOtp = new otpModel(otpData)
+    return await newOtp.save()
+}
+
+const checkForExistingOtpDocument = async (email) => {
+    return await otpModel.findOne({ email })
+}
+
+const getOtpDocumentByEmail = async (email) => {
+    const otpData = await otpModel.findOne({ email })
+    if (!otpData) {
+        throw new Error('No Verification code was found.')
+    }
+
+    return otpData
+}
+
 module.exports = {
     generateAuthUrl,
     getUserDataFromCode,
     verifyAccessToken,
     refreshIdToken,
+    generateAndSendOtp,
+    generateOtp,
+    getOtpDocumentByEmail,
 }

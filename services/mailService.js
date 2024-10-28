@@ -1,19 +1,8 @@
-const nodemailer = require('nodemailer')
-const dotenv = require('dotenv')
 const path = require('path')
 const fs = require('fs')
+const { transporter } = require('../config/smtpconfig')
 
-dotenv.config()
-
-const transporter = nodemailer.createTransport({
-    service: process.env.EMAIL_SERVICE,
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-    },
-})
-
-const sendOtpEmail = (to, otp) => {
+const sendOtpThroughEmail = (to, otp) => {
     const templatePath = path.join(__dirname, '../templates/otpTemplate.html')
     let htmlContent = fs.readFileSync(templatePath, 'utf8')
 
@@ -40,5 +29,5 @@ const sendOtpEmail = (to, otp) => {
 }
 
 module.exports = {
-    sendOtpEmail,
+    sendOtpThroughEmail,
 }

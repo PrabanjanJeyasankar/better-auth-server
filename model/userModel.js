@@ -26,18 +26,6 @@ const userSchema = new mongoose.Schema(
             },
             unique: true,
         },
-        googleId: {
-            type: String,
-            required: false,
-        },
-        otp: {
-            type: String,
-            required: false,
-        },
-        otpExpiry: {
-            type: Date,
-            required: false,
-        },
         verifiedUser: {
             type: Boolean,
             default: false,

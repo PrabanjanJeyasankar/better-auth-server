@@ -1,6 +1,12 @@
 const bcrypt = require('bcryptjs')
 const userModel = require('../model/userModel')
 const mailService = require('../services/mailService')
+const { getUserByEmail } = require('../services/userService')
+const {
+    generateAndSendOtp,
+    getOtpDocumentByEmail,
+} = require('../services/authService')
+const { setResponseBody } = require('../utils/responseFormatter')
 
 const generateOtp = () => {
     return Math.floor(100000 + Math.random() * 900000).toString()
@@ -8,50 +14,70 @@ const generateOtp = () => {
 
 const requestOtp = async (request, response) => {
     const { email } = request.body
-
     try {
-        const user = await userModel.findOne({ email })
+        const user = await getUserByEmail(email)
+
         if (!user) {
-            return response.status(404).send({ message: 'User not found' })
+            return response
+                .status(404)
+                .send(setResponseBody('User not found', 'user_not_found', null))
         }
 
-        const otp = generateOtp()
-        user.otp = otp
-        user.otpExpiry = Date.now() + 10 * 60 * 1000
-        await user.save()
+        await generateAndSendOtp(user.email)
 
-        await mailService.sendOtpEmail(user.email, otp)
-
-        response.status(200).send({ message: 'OTP sent to your email' })
+        return response
+            .status(200)
+            .send(setResponseBody('OTP sent to your email', null, null))
     } catch (error) {
-        response.status(500).send({ message: 'Error sending OTP' })
+        response
+            .status(500)
+            .send(
+                setResponseBody(
+                    'Error sending OTP',
+                    'otp_sending_error',
+                    error.message
+                )
+            )
     }
 }
 
 const verifyOtp = async (request, response) => {
-    const { email, otp } = request.body
+    const { email, otp: inputOtp } = request.body
 
     try {
-        const user = await userModel.findOne({ email })
-        if (!user) {
-            return response.status(404).send({ message: 'User not found' })
+        const otpData = await getOtpDocumentByEmail(email)
+
+        if (!otpData) {
+            return response
+                .status(404)
+                .send(
+                    setResponseBody(
+                        'OTP expired, please resend',
+                        'otp_expired',
+                        null
+                    )
+                )
         }
 
-        if (user.otp !== otp) {
-            return response.status(400).send({ message: 'Invalid OTP' })
+        if (otpData.otp.toString() !== inputOtp.toString()) {
+            return response
+                .status(400)
+                .send(setResponseBody('Invalid OTP', 'invalid_otp', null))
         }
 
-        if (user.otpExpiry < Date.now()) {
-            return response.status(410).send({ message: 'OTP has expired' })
-        }
-
-        user.otp = null
-        user.otpExpiry = null
-        await user.save()
-
-        response.status(200).send({ message: 'OTP verified' })
+        return response
+            .status(200)
+            .send(setResponseBody('OTP verified successfully', null, null))
     } catch (error) {
-        response.status(500).send({ message: 'Error verifying OTP' })
+        return response
+            .status(500)
+            .send(
+                setResponseBody(
+                    'Error verifying OTP',
+                    'server_error',
+                    error.message
+                )
+            )
     }
 }
 
@@ -76,7 +102,6 @@ const resetPassword = async (request, response) => {
 
         response.status(200).json({ message: 'Password reset successfully' })
     } catch (error) {
-        console.error('Password reset error:', error)
         response.status(500).json({ error: 'Error resetting password' })
     }
 }
